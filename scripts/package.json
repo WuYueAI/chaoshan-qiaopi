@@ -1,0 +1,21 @@
+{
+  "name": "chaoshan-qiaopi-renderer",
+  "version": "1.0.0",
+  "description": "潮汕侨批书写馆 - 传统信笺图片渲染器",
+  "main": "render-qiaopi.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "qiaopi",
+    "chaoshan",
+    "letter",
+    "renderer"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "puppeteer-core": "^25.1.0",
+    "sharp": "^0.34.5"
+  }
+}

@@ -1,69 +1,53 @@
-﻿# 潮汕侨批书写馆 (chaoshan-qiaopi)
+# 潮汕侨批书写馆 (chaoshan-qiaopi)
 
-将任意文本转换为潮汕传统侨批风格书信，并渲染为传统信笺图片。
+将大白话转换为潮汕传统侨批（南洋家书）风格书信，生成传统信笺图片。
 
-## 安装
+## 快速使用（零安装）
 
-```bash
-cd scripts
-npm install
-```
+**双击 `qiaopi-demo.html` 即可使用。** 输入大白话 → 点击"研墨成笺" → 下载信笺图片。
 
-## 使用方法
+| 特点 | 说明 |
+|------|------|
+| 单文件 | 一个 HTML，约 17MB |
+| 零依赖 | 不需要 Node.js、Python、Docker |
+| 完全离线 | 3 张底图、3 款字体全部内嵌 |
+| 随机底图 | 每次生成从 3 张侨批信笺中随机选一张 |
+| 可调参数 | 字号、每列字数实时调节 |
 
-### 1. 生成侨批书信
+[下载 qiaopi-demo.html](https://raw.githubusercontent.com/WuYueAI/chaoshan-qiaopi/main/qiaopi-demo.html)（右键另存为）
 
-根据 [SKILL.md](SKILL.md) 中的写作规则，AI 将用户输入转换为侨批风格书信。
+## WorkBuddy 聊天内使用
 
-### 2. 渲染为图片
+在工作聊天中直接说「帮我写一封侨批给阿嬷」，或触发关键词「侨批」「南洋家书」「给阿嫲的信」等，AI 会自动代笔生成书信并渲染为图片。
 
-```bash
-node scripts/render-qiaopi.js --text "书信正文..." --output output.png
-```
-
-### 参数说明
-
-| 参数 | 默认值 | 说明 |
-|------|--------|------|
-| `--text` | - | 书信正文（必需） |
-| `--output` | - | 输出文件路径（必需） |
-| `--fontSize` | 52 | 字号（px） |
-| `--cols` | 28 | 每列字数（总容量 8×28=224） |
-| `--format` | png | 输出格式 png/jpg |
-| `--bg` | fonts/ama-jpg.jpg | 背景图路径 |
-| `--font` | - | 自定义字体 .ttf/.otf |
-| `--rotate` | 0 | 旋转角度 |
-
-### 示例
+## 自行构建
 
 ```bash
-# 基本用法
-node scripts/render-qiaopi.js --text "阿嬷大人：展信安好..." --output letter.png
-
-# 小号字 + 多列（容纳更长文本）
-node scripts/render-qiaopi.js --text "..." --output letter.png --fontSize 40 --cols 30
-
-# JPG 格式
-node scripts/render-qiaopi.js --text "..." --output letter.jpg --format jpg
+python build-v46.py    # 需要正1.png / 正2.png / 正3.png 在项目目录
 ```
 
-## 版本历史
+## 命令行渲染
 
-- **v24**（当前）：前置截断机制，28字/列，总容量224字，超长自动截断+提示
-- **v23-v21**：JPG 底图切换、纸面利用率修复、印章穿透优化
-- **v20 及更早**：列对齐精调、水印去除、字体嵌入
+```bash
+cd scripts && npm install
+node render-qiaopi.js --text "书信正文..." --output output.png
+```
 
 ## 文件结构
 
-- `SKILL.md` - WorkBuddy 技能定义
-- `README.md` - 本文件
-- `references/style-guide.md` - 详细写作风格指南
-- `scripts/render-qiaopi.js` - HTML→图片渲染脚本（v24）
-- `scripts/fonts/` - 底图 + 内嵌字体文件
-- `scripts/package.json` - Node.js 依赖配置
-
-## 系统要求
-
-- Node.js 18+
-- Windows（使用 Edge 无头模式）+ macOS/Linux（需安装 Chromium）
-- 无需联网（字体已 base64 内嵌）
+```
+chaoshan-qiaopi/
+├── qiaopi-demo.html          ← 独立网页版（推荐，双击即用）
+├── build-v46.py              ← 网页版构建脚本
+├── SKILL.md                  ← WorkBuddy 技能定义
+├── scripts/
+│   ├── render-qiaopi.js      ← 命令行渲染引擎
+│   ├── package.json
+│   └── fonts/
+│       ├── 正1.png / 正2.png / 正3.png   ← 底图
+│       ├── simkai.ttf                    ← 楷体
+│       ├── simfang.ttf                   ← 仿宋
+│       └── simsun.ttc                    ← 宋体
+└── references/
+    └── style-guide.md        ← 侨批写作风格指南
+```

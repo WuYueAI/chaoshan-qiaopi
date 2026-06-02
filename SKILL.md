@@ -5,13 +5,15 @@ description: 将任意输入文本转换为《给阿嫲的情书》同款潮汕�
 
 # 潮汕侨批书写馆 (chaoshan-qiaopi)
 
-将用户输入的任意内容，转化为白话文言结合的潮汕传统侨批风格书信，并渲染为一张传统信笺图片（HTML渲染 → PNG/JPG）。
+将用户输入的任意内容，转化为白话文言结合的潮汕传统侨批风格书信，再渲染为一张传统信笺图片。
+
+**两种使用方式：** 1) WorkBuddy 聊天内直接生成（本 Skill）；2) 双击 `qiaopi-demo.html` 独立使用（零安装）。
 
 ## 工作流程
 
-### 第一步：生成侨批书信正文
+### 第一步：WorkBuddy 内置 LLM 代笔生成侨批正文
 
-严格遵循以下写作铁律，将用户输入转化为侨批文体：
+由 WorkBuddy 的大模型作为「代笔先生」，根据用户大白话输入，严格遵循侨批写作铁律生成书信正文。核心逻辑在 `build-v46.py` 的 `buildLetter()` 中，拥有 **200+ 条独特模板变体**（6种开头 × 10种无汇款开场 × 5种汇款后续 × 4种状态模板 × 24条季节思乡 × 16条季节关心 × 7种关心收尾 × 33条结尾寄语 + 6条附言），基于输入文本的不同产生截然不同的输出，避免千篇一律。
 
 **写作铁律（硬性规则）：**
 
@@ -24,100 +26,51 @@ description: 将任意输入文本转换为《给阿嫲的情书》同款潮汕�
 7. **自动适配关系**：夫妻、祖孙、亲子、亲人皆可，自动匹配称谓。
 8. **禁止出现**：网络词、现代口语、书面八股、空洞大话。
 
-**固定金句库（按需融入，不堆砌）：**
-- 江海万里，心有所寄，便不觉远。
-- 身在异乡，日夜心念家中人事。
-- 诸事尚可，身体安稳，勿劳挂念。
-- 家中大小平安，便是人间圆满。
-- 岁月匆匆，唯愿亲人安稳，岁岁如常。
-
-**标准结构模板：**
-
-1. **开头**：专属旧式称谓 + 展信安好/展信佳
-2. **首段**：明确写出「随信寄入XX钱款，祈为查收」（无则写"薄资些许，聊补家用"）
-3. **二段**：自述在外近况，平安顺遂，不报忧
-4. **三段**：由时节、风物、小事牵起思念（最核心氛围感段落）
-5. **四段**：叮嘱家人保重身体、勿操劳、放宽心
-6. **结尾**：一句简短侨批式收尾寄语
-7. **落款**：身份 + 字（例：夫XX字、孙XX谨书）
-
-**关系称谓自动适配：**
-
-| 关系 | 称谓示例 |
-|------|---------|
-| 祖孙 | 阿嬷、阿公、阿祖、嬷嬷 |
-| 亲子 | 母亲、父亲、吾娘、吾父 |
-| 夫妻 | 娘子、夫君、吾妻、拙夫 |
-| 亲人 | 家中老小、诸亲、长辈 |
-
 详细模板、金句库、范例信件 → 参见 [references/style-guide.md](references/style-guide.md)
 
-### 第二步：渲染为传统信笺图片（HTML → PNG/JPG）
+### 第二步：渲染为传统信笺图片
 
-**渲染脚本**：`scripts/render-qiaopi.js`（当前版本：v24）
+**渲染脚本**：`{SKILL_BASE}/scripts/render-qiaopi.js`
 
-**执行方式：**
-```bash
-node scripts/render-qiaopi.js --text "书信正文..." --output output.png [--format png|jpg] [--fontSize 52] [--cols 28]
+> 所有路径必须使用绝对路径。SKILL_BASE 由 WorkBuddy 在加载 skill 时提供。脚本内部字体和默认背景使用 `__dirname` 自定位，无需额外传参。
+
+```
+node "{SKILL_BASE}/scripts/render-qiaopi.js" --text "书信正文..." --output "绝对路径/output.png"
 ```
 
 **渲染特性：**
-- **背景**：《阿嫲情书》侨批信笺原图（1773x2364，JPG），带8条红栏线 + 传统圆形印章
-- **字体**：本地嵌入 simkai/simfang/simsun 三级回退（base64 内嵌，无需联网）
-- **字体大小**：默认 52px（可调 `--fontSize`），每列自动适配纸面高度
-- **列数**：默认 28 字/列，8 列竖排从右至左阅读，总容量 224 字
-- **溢出防护**：超长文字在渲染前自动截断并提示（v24 前置截断机制）
-- **输出**：PNG（默认）或 JPG
+- 背景：侨批信笺原图（1536x2727 PNG），11 条红栏线 + 右下角照片元素；支持 `--bg` 参数指定 `正1/正2/正3.png`
+- 字体：本地嵌入 simkai/simfang/simsun 三级回退
+- 字号：默认 52px（可调 `--fontSize`）
+- 列数：默认每列 27 字，11 列竖排从右至左
+- 溢出防护：渲染前自动截断并提示
 
-**前置要求：**
-- 系统需要 Edge 浏览器（脚本使用 `puppeteer-core` + Edge 无头模式，无需额外安装 Chrome）
-- Node.js 环境（v18+）
-- 安装依赖：`cd scripts && npm install`
+**前置要求：** Edge 浏览器 + Node.js v18+，依赖已预装于 `scripts/node_modules/`
 
-**图片输出参数：**
-| 参数 | 短参 | 说明 | 默认值 |
-|------|------|------|--------|
-| `--text` | `-t` | 书信正文（必需） | - |
-| `--output` | `-o` | 输出文件路径（必需） | - |
-| `--format` | `-f` | 输出格式：`png` 或 `jpg` | `png` |
-| `--fontSize` | `-s` | 字号（px） | `52` |
-| `--cols` | `-c` | 每列字符数 | `28` |
-| `--rotate` | `-r` | 旋转角度（度） | `0` |
-| `--bg` | `-b` | 背景图路径 | `scripts/fonts/ama-jpg.jpg` |
-| `--font` | `-F` | 自定义字体文件路径（.ttf/.otf） | - |
-
-**示例：**
-```bash
-# 基本用法
-node scripts/render-qiaopi.js --text "阿嬷大人：展信安好..." --output letter.png
-
-# 自定义字号和列数
-node scripts/render-qiaopi.js --text "..." --output letter.png --fontSize 48 --cols 24
-
-# 输出 JPG
-node scripts/render-qiaopi.js --text "..." --output letter.jpg --format jpg
-
-# 自定义背景和字体
-node scripts/render-qiaopi.js --text "..." --output letter.png --bg ./custom-bg.jpg --font ./my-font.ttf
-```
+| 参数 | 说明 | 默认值 |
+|------|------|--------|
+| `--text` / `-t` | 书信正文（必需） | - |
+| `--output` / `-o` | 输出路径（必需，绝对路径） | - |
+| `--format` / `-f` | png 或 jpg | png |
+| `--fontSize` / `-s` | 字号 px | 52 |
+| `--cols` / `-c` | 每列字数 | 27 |
+| `--bg` / `-b` | 背景图路径 | scripts/fonts/正1.png |
 
 ### 第三步：输出给用户
 
 依次输出：
-1. 生成的侨批书信正文（纯正文，无任何解释说明）
-2. 生成的信笺图片文件路径
+1. 生成的侨批书信正文（纯正文，无解释）
+2. 生成的信笺图片（PNG/JPG）
 
 ---
 
-## 附加功能：接入 AI 生图（可选）
+## 独立网页版
 
-如需 AI 生成真实手写风格的信笺图片，可额外接入 `baoyu-image-gen` 技能。
+如需脱离 WorkBuddy 使用，仓库根目录的 `qiaopi-demo.html` 是**完全自包含的单文件应用**：
 
-**生图提示词模板：**
-```
-Chinese traditional handwritten letter paper, qiaopi style, old paper texture, red vertical lines, elegant traditional design, warm sepia tones, faint grid lines, handcrafted paper feel, vintage ink style, the letter text is clearly visible in traditional Chinese calligraphy style, realistic paper edges, nostalgic atmosphere, 19th century southern Chinese overseas Chinese letter paper aesthetic, high quality photograph of an actual old letter
-```
+- 双击即用，无需安装任何东西
+- 全部字体、3 张底图（正1/正2/正3）以 base64 内嵌
+- 每次"研墨成笺"随机切换底图
+- 可调字号、每列字数，支持下载 PNG
 
-执行方式：调用 `baoyu-image-gen` 技能，传入侨批正文作为 prompt，生成图片。
-
-**优先级**：优先使用 HTML 渲染方案（无需 API key）。如用户有 AI 生图需求，再调用 baoyu-image-gen。
+构建方式：`python build-v46.py`（需要正1/正2/正3.png 在项目目录）

@@ -1,10 +1,9 @@
 /**
- * chaoshan-qiaopi renderer v24
- * Background: ama-jpg.jpg (阿嫲情书侨批信笺生成(1).jpg, JPG format)
- * Paper: 1773x2364, aged paper texture, "侨批" title at top, red frame + 8 columns + circular seal
- * v23 fix: dynamic maxPerCol = floor(1704/fontSize), clamp --cols.
- * v24 fix (BETTER): charsPerColumn default=28, 前置截断输入文本。
- *       totalCap = 8×28 = 224. 超长文字在渲染前就截断，绝不溢出。
+ * chaoshan-qiaopi renderer
+ * Background: 正1.png (潮汕侨批信笺底图, PNG format)
+ * Paper: 1536x2727, aged paper texture, "侨批" title at top, red frame + 11 columns + circular seal
+ * charsPerColumn default=27, 前置截断输入文本。
+ *       totalCap = 11×27 = 297. 超长文字在渲染前就截断，绝不溢出。
  *       同时保留 maxPerCol 防护 --cols 超限。
  */
 
@@ -96,17 +95,13 @@ function buildHtml(letterText, opts) {
   // font-family 回退链（楷体 > 仿宋 > 宋体）
   const fontStack = primaryFont + "'SimKai', 'SimFang', 'SimSun', serif;";
 
-  // Paper dimensions for 阿嫲情书侨批信笺生成(1).png (v16 default)
-  // Background: 1773x2364, aged paper, "侨批" title prominent at top
-  // Red frame + 8 vertical column lines + circular seal at lower-center
-  // Red lines approx: x≈190, 410, 598, 790, 972, 1158, 1340, 1536
-  // Frame borders approx: left~185, right~1540, top~400, bottom~2210
-  // Seal area: center approx (886, 1600), radius~180px, y: 1420-1780
+  // Paper dimensions for 正1.png (v26)
+  // Background: 1536x2727, aged paper, "侨批" title prominent at top
+  // Red frame + 11 vertical column lines + photo element at bottom-right
+  // Column boundaries (user-calibrated): 146,232,335,444,555,675,790,908,1026,1144,1261,1379
+  // Frame borders: text-area top=796, bottom=2199
+  // Photo zone: left≈795, top≈1830, width≈662, height≈473 (text must avoid this area)
   // Writing columns are BETWEEN the red lines, right-to-left (traditional Chinese)
-
-  // Column width calculation:
-  // Red line spacing ~193-198px (relatively even).
-  // In vertical-rl mode, line-height controls the horizontal gap between columns.
 
   return [
     "<!DOCTYPE html>",
@@ -114,28 +109,28 @@ function buildHtml(letterText, opts) {
     "<head>",
     "<meta charset=\"utf-8\">",
     "<style>",
-    "/* v15: 使用本地内嵌字体，不依赖 Google Fonts CDN，彻底解决无头模式乱码 */",
+    "/* v26: 使用本地内嵌字体，不依赖 Google Fonts CDN，彻底解决无头模式乱码 */",
     fontFaceCSS,
     "* { margin: 0; padding: 0; box-sizing: border-box; }",
     "html, body { width: 100%; height: 100%; overflow: hidden; }",
     "body { background: #f5f0e6; display: flex; justify-content: center; align-items: center; }",
     
     ".paper {",
-    "  width: 1773px;",
-    "  height: 2364px;",
+    "  width: 1536px;",
+    "  height: 2727px;",
     "  position: relative;",
     "  background-image: url('" + bgUri + "');",
-    "  background-size: 1773px 2364px;",
+    "  background-size: 1536px 2727px;",
     "  background-position: center center;",
     "  background-repeat: no-repeat;",
     "}",
     /* Text container - positioned within the frame */
     ".text-wrap {",
     "  position: absolute;",
-    "  top: 580px;",          // Below title (v18: increased from 520)
-    "  left: 0;",             // v18: full width, columns use absolute coords
-    "  right: 0;",            // v18: full width
-    "  bottom: 80px;",        // v22: 160→80, text reaches deeper into seal
+    "  top: 796px;",          // Below title, user-calibrated
+    "  left: 0;",
+    "  right: 0;",
+    "  bottom: 528px;",       // 2727-2199=528, user-calibrated
     "  transform: rotate(" + rotation + "deg);",
     "  transform-origin: center center;",
     "}",
@@ -177,38 +172,41 @@ function buildColumnsHtml(letterText, charsPerColumn, fontSize) {
     columns.push(text.substring(i, i + charsPerColumn));
   }
   
-  // Limit to 8 columns (the paper only has 8 writing zones)
-  const maxCols = 8;
+  // v26: 11 columns (was 7)
+  const maxCols = 11;
   if (columns.length > maxCols) {
     columns.splice(maxCols);
   }
   
-  // Column left positions (absolute paper coordinates, center of each red-line interval)
-  // v21: JPG底图红线 at y=472: 194, 413, 601, 791, 974, 1159, 1342, 1535
-  // col left = interval_center - fontSize/2, +1px correction for text-align:center rendering
+  // Column left positions (absolute paper coordinates, center of each column interval)
+  // v27: 11 columns, user-calibrated on 正1.png (1536×2727)
+  // col centers: 189,284,390,500,615,733,849,967,1085,1203,1320
+  // col left = center - fontSize/2
   const halfW = Math.round(fontSize / 2);
-  const colLefts = [
-    1440 - halfW,   // col-1 (rightmost): between 1342-1535, center=1439 (+1px)
-    1252 - halfW,   // col-2: between 1159-1342, center=1251 (+1px)
-    1068 - halfW,   // col-3: between 974-1159, center=1067 (+1px)
-    884 - halfW,    // col-4: between 791-974, center=883 (+1px)
-    697 - halfW,    // col-5: between 601-791, center=696 (+1px)
-    508 - halfW,    // col-6: between 413-601, center=507 (+1px)
-    305 - halfW,    // col-7: between 194-413, center=304 (+1px)
-    191 - halfW,    // col-8 (leftmost): between frame~185-194, center=190 (+1px)
-  ];
+  const colCenters = [1320, 1203, 1085, 967, 849, 733, 615, 500, 390, 284, 189];
   
-  // v19: seal-gap removed - text can overlay the circular seal area
+  // ===== 照片回避区 (v28: 扩大覆盖以完整遮住船型装饰) =====
+  var PHOTO_LEFT     = 780,  PHOTO_RIGHT    = 780 + 690;   // 780~1470
+  var PHOTO_TOP      = 1700, PHOTO_BOTTOM   = 1700 + 650;  // 1700~2350
+  var TEXT_Y         = 796;
+  var blockedStart   = Math.floor((PHOTO_TOP - TEXT_Y) / fontSize);
+  var blockedEnd     = Math.floor((PHOTO_BOTTOM - TEXT_Y) / fontSize);
   
   return columns.map((col, idx) => {
-    const leftPx = colLefts[idx] || 0;
+    var center = colCenters[idx] || 0;
+    var leftPx = center - halfW;
+    var colL = center - halfW, colR = center + halfW;
+    var inPhotoX = (colR > PHOTO_LEFT && colL < PHOTO_RIGHT);
     
-    // Build spans for each character
-    const chars = [...col];  // split into individual characters
-    let spansHtml = '';
+    var chars = [...col];
+    var spansHtml = '';
     
-    for (let ci = 0; ci < chars.length; ci++) {
-      spansHtml += '<span>' + escapeHtml(chars[ci]) + '</span>';
+    for (var ci = 0; ci < chars.length; ci++) {
+      if (inPhotoX && ci >= blockedStart && ci <= blockedEnd) {
+        spansHtml += '<span style="visibility:hidden">&nbsp;</span>';
+      } else {
+        spansHtml += '<span>' + escapeHtml(chars[ci]) + '</span>';
+      }
     }
     
     return '<div class="col" style="transform:translateX(' + leftPx + 'px)">' + spansHtml + '</div>';
@@ -247,7 +245,7 @@ async function renderLetter(letterText, outputPath, format, fontSize, bgPath, fo
   try {
 
     page = await browser.newPage();
-    await page.setViewport({ width: 1773, height: 2364, deviceScaleFactor: 1 });
+    await page.setViewport({ width: 1536, height: 2727, deviceScaleFactor: 1 });
     await page.setContent(html, { waitUntil: "domcontentloaded" });
     // 本地字体以 base64 内嵌，不依赖网络，等待 1.5s 确保字体解码完成后渲染稳定
     await new Promise(function(r) { setTimeout(r, 1500); });
@@ -292,13 +290,13 @@ var output   = get("output",  "o");
 var format   = get("format",  "f") || "png";
 var fontSize = parseInt(get("fontSize", "s") || "52", 10);
 
-// v24: 前置截断 — 在渲染前就把文字裁到纸面容得下的长度
-// 垂直上限: floor((2364-580-80) / fontSize) = floor(1704/52) = 32
-// 但默认每列 28 字、8 列总容量 224，只在用户强行指定 --cols 超限时才用 maxPerCol
-var PAPER_H      = 2364;
-var TEXT_TOP     = 580;
-var TEXT_BOTTOM  = 80;
-var maxPerCol    = Math.floor((PAPER_H - TEXT_TOP - TEXT_BOTTOM) / fontSize);
+// v26: 前置截断 — 在渲染前就把文字裁到纸面容得下的长度
+// 垂直上限: floor((2199-796) / fontSize) = floor(1403/52) = 26
+// 默认每列 27 字、11 列总容量 297，只在用户强行指定 --cols 超限时才用 maxPerCol
+var PAPER_H      = 2727;
+var TEXT_TOP     = 796;
+var TEXT_BOTTOM  = 528;   // 2727-2199=528
+var maxPerCol    = Math.round((PAPER_H - TEXT_TOP - TEXT_BOTTOM) / fontSize);
 
 var userCols     = get("cols", "c");
 var charsPerColumn;
@@ -310,17 +308,17 @@ if (userCols) {
     charsPerColumn = maxPerCol;
   }
 } else {
-  charsPerColumn = 28;   // v24: 回到 28 默认
+  charsPerColumn = 27;   // v26: 11列×27字=297字容量
 }
 
 // ===== 前置截断：文字在渲染前就裁好 =====
-var totalCap = 8 * charsPerColumn;
+var totalCap = 11 * charsPerColumn;
 var cleanText = text.replace(/\r?\n/g, "");
 if (cleanText.length > totalCap) {
   var dropped = cleanText.length - totalCap;
   // 按实际每列字数精确截断
   var truncated = "";
-  for (var ci = 0; ci < 8 && ci * charsPerColumn < cleanText.length; ci++) {
+  for (var ci = 0; ci < 11 && ci * charsPerColumn < cleanText.length; ci++) {
     truncated += cleanText.substring(ci * charsPerColumn, (ci + 1) * charsPerColumn);
   }
   console.log("✂ 原文 " + cleanText.length + " 字，信纸仅容 " + totalCap + " 字，截断尾部 " + dropped + " 字");
@@ -329,7 +327,7 @@ if (cleanText.length > totalCap) {
 }
 
 var rotation   = parseInt(get("rotate", "r") || "0", 10);
-var bgPath   = get("bg",      "b") || path.join(__dirname, "fonts", "ama-jpg.jpg");
+var bgPath   = get("bg",      "b") || path.join(__dirname, "fonts", "正1.png");
 var fontPath = get("font",    "F") || "";
 var help     = getFlag("help", "h");
 
